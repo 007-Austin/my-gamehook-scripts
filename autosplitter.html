@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autosplitter</title>
+    <link rel="icon" href="https://archives.bulbagarden.net/media/upload/5/5b/Spr_3f_025.png" type="image/x-icon">
+    <!-- <link rel="stylesheet" href="style.css"> -->
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@700" rel="stylesheet"> -->
+    <!-- <link href="styles.css" rel="stylesheet" \> -->
+    <style>
+        body {
+            font-family: "Lucida Console", "Courier New", monospace;
+   
+        }
+        .input-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        width: 500px;
+        }
+        div {
+            white-space: pre-wrap; 
+            tab-size: 26px;
+            text-align: justify;
+        }
+
+        .input-container label {
+            width: 150px; /* Adjust the width as needed */
+            text-align: right;
+            margin-right: 10px;
+        }
+
+        .input-container input {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div v-if="ready == false">
+            Something went wrong, please reload this page with Gamehook's mapper loaded. 
+        </div>
+        <div v-else>
+            Gamehook is connected.</div>
+            <br><br><br>
+            &emsp;&emsp;&emsp;This script records splits.
+            <br>
+            &emsp;&emsp;&emsp;To view splits, input the 
+            <div class="input-container">
+                <label for="autoSplitterPokemonName">Pokemon name:</label>
+                <input type="text" id="autoSplitterPokemonName" v-model="autoSplitterPokemonName">
+                <button @click="setPokemonName">Submit</button>
+            </div>
+
+            <div>
+                <label for="selectSplit">Choose a split:</label>
+                <select id="selectSplit" v-model="selectedSplit">
+                  <option v-for="(split, index) in splitsData" :value="index + 1">{{ index + 1 }}</option>
+                </select>
+                
+                <!-- Display the selected split -->
+                <div v-if="selectedSplit !== null">
+                  Selected Split: {{ selectedSplit }}
+                </div>
+              </div>
+            Splits <br>
+            <div v-text="formattedString" style="white-space: pre;"></div>
+
+    </div>
+    <script src="https://unpkg.com/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+    <script src="https://unpkg.com/vue@latest/dist/vue.global.js"></script>
+    <script src="http://localhost:8085/dist/gameHookMapperClient.js"></script>
+
+    <script type="text/javascript">
+        const app = Vue.createApp({
+            data() {
+                return {
+                    ready: false,
+                    mapper: null,
+                    autoSplitterPokemonName: '', 
+                    rivalName: '', 
+                    pokemonName: '',
+                    splitsData: '',
+                    selectedSplit: null,
+
+                }
+            },
+            methods: {
+                setPokemonName() {
+                    // if(this.pokemonName!=null && this.pokemonName != '') {
+                    //     // this.mapper.properties.player.team[0].nickname.set(this.pokemonName,false);
+                    // }
+                },
+                loadFromLocalStorage(key) {
+                    const value = localStorage.getItem(key);
+                    if (value !== null && value !="undefined") {
+                        try {
+                            this[key] = JSON.parse(value); // Update the data property from localStorage
+                        } catch (error) {
+                            console.error(`Error parsing JSON for key '${key}':`, error);
+                        }
+                    }
+                },
+                saveToLocalStorage(key) {
+                    localStorage.setItem(key, JSON.stringify(this[key])); // Save the data property to localStorage
+                },
+                saveDataToLocalStorage(key, data) {
+                    localStorage.setItem(key, JSON.stringify(data)); // Save the data property to localStorage
+                },
+
+                loadData() {
+                    this.loadFromLocalStorage('autoSplitterPokemonName');
+                    this.loadFromLocalStorage('splitsData');
+                },
+                appendNewObjectToLocalStorage(key, newData) {
+                    // Get the existing data, or initialize an empty array if it doesn't exist
+                    let existingData = localStorage.getItem(key);
+                    if (!existingData) {
+                        existingData = [];
+                    } else {
+                        // Parse the existing data from JSON
+                        existingData = JSON.parse(existingData);
+                    }
+                    // Append the new data to the existing data
+                    existingData.push(newData);
+                    // Save the updated data back to LocalStorage
+                    localStorage.setItem(key, JSON.stringify(existingData));
+                },
+                appendToLocalStorage(key, newData) {
+                    // Get the existing data as an array of strings, or initialize it as an empty array if it doesn't exist
+                    let existingData = localStorage.getItem(key);
+                    if (!existingData) {
+                        existingData = [];
+                    } else {
+                        // Parse the existing data from JSON
+                        existingData = JSON.parse(existingData);
+                    }
+
+                    // Check if the last element in the array is a string
+                    if (typeof existingData[existingData.length - 1] === "string") {
+                        // Append the new data to the last string in the array
+                        existingData[existingData.length - 1] += newData;
+                    } else {
+                        // If the last element is not a string, append the new data as a new element
+                        existingData.push(newData);
+                    }
+
+                    // Save the updated data back to LocalStorage
+                    localStorage.setItem(key, JSON.stringify(existingData));
+                },
+
+                trackSplits()
+                {
+                    const splitTrainers = ["BROCK", "MISTY", "LT.SURGE","ERIKA", "KOGA", "SABRINA", "BLAINE", "GIOVANNI", "LORELEI","BRUNO","AGATHA","LANCE","RIVAL1","RIVAL2","RIVAL3"];
+                    const header = "Trainer\tGameTime\tLevel\tPokemon\t\tMove1\t\tMove2\t\tMove3\t\tMove4";
+                    // var message = header;
+                    var playerId = this.mapper.properties.player.playerId.value;
+                    this.mapper.properties.player.playerId.change(async () => {
+                    setTimeout(() => {
+                            let message = "";
+                            if(this.mapper.properties.player.playerId.value!=0 && this.mapper.properties.player.playerId.value !=playerId) {
+                            console.log("start");
+                            playerId = this.mapper.properties.player.playerId.value;
+                            message = "New game - Player ID: " + playerId + "\n" + header + "\n";
+                            this.appendNewObjectToLocalStorage('splitsData',message);
+
+                            //new game
+                            // resetStopwatch();
+                            // startStop();
+                        }
+                        //console.log("changed map to " + this.mapper.properties.battle.textBuffer.value + "- "+this.mapper.properties.overworld.mapGroup +":" + this.mapper.properties.overworld.mapNumber);
+                        }, 2); //delay so gamehook can update
+                    })
+
+                    this.mapper.properties.battle.lowHealthAlarm.change(async (x) => {
+                        if(x == "Disabled" && splitTrainers.includes(this.mapper.properties.battle.trainer.class.value)){
+                            let message = "";
+                            message = message + "\n" + this.mapper.properties.battle.trainer.class.value;
+                            let minuteLeadZero = "";
+                            let secondLeadZero = "";
+                            if(this.mapper.properties.gameTime.minutes.value < 10) {
+                                minuteLeadZero = "0";
+                            }
+                            if(this.mapper.properties.gameTime.seconds.value < 10) {
+                                secondLeadZero = "0";
+                            } 
+                            message = message + "\t" + this.mapper.properties.gameTime.hours.value + ":" + minuteLeadZero + this.mapper.properties.gameTime.minutes.value + ":" + secondLeadZero + this.mapper.properties.gameTime.seconds.value;
+                            message = message + "\t" + this.mapper.properties.player.team[0].level.value;
+                            message = message + "\t" + this.mapper.properties.player.team[0].species.value;
+                            message = message + "\t\t" + this.mapper.properties.player.team[0].move1.value;
+                            message = message + "\t\t" + this.mapper.properties.player.team[0].move2.value;
+                            message = message + "\t" + this.mapper.properties.player.team[0].move3.value;
+                            message = message + "\t" + this.mapper.properties.player.team[0].move4.value;
+                            message = message + "\n";
+                            console.log("Message:\n"+ message);
+                            this.appendToLocalStorage('splitsData',message);
+                            this.loadData();
+                        }
+                    })
+                },
+            },
+            computed: {
+                formattedString() {
+                    if(!this.splitsData) { return;}
+                    // Replace \n and \t with HTML entities
+                    return this.splitsData[this.selectedSplit-1];
+                    // return this.splitsData[this.splitsData.length - 1].replace(/\n/g, '<br>').replace(/\t/g, '&emsp;%emsp;');
+                },
+            },
+            mounted: async function () {
+                const that = this
+                this.loadData();
+
+                // Setup the GameHook client, and configure it to
+                //Show and hide the UI based off of the ready state.
+                this.mapper = new GameHookMapperClient();
+                this.mapper.onConnected = (x) => this.ready = true;
+                this.mapper.onDisconnected = (x) => this.ready = false;
+
+                //establish the connection to GameHook.
+                await this.mapper.connect();
+                 // You can listen for properties to change like this
+                // after the connection has been established.
+                // this.mapper.properties.overworld.loadedMap.change(async(x) => {
+                // console.info(`Entered ${x.value || "a new map"} -- setting all encounters.`)});
+				this.trackSplits();
+            },
+            watch: {
+                autoSplitterPokemonName() { this.saveToLocalStorage('autoSplitterPokemonName'); },
+            }
+        }).mount('#app')
+    </script>
+</body>
