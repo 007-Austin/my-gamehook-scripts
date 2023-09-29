@@ -34,39 +34,94 @@
         .input-container input {
             flex: 1;
         }
+        .container {
+            display: flex;
+            justify-content: space-between; /* Spacing between left and right divs */
+        }
+
+        .left-div {
+            flex: 1; /* Expand to fill available space equally */
+            background-color: #f0f0f0; /* Background color for left div */
+            padding: 20px; /* Add padding for spacing */
+        }
+
+        .right-div {
+            flex: 1; /* Expand to fill available space equally */
+            background-color: #e0e0e0; /* Background color for right div */
+            padding: 20px; /* Add padding for spacing */
+        }
+
+        .middlecontainer {
+            display: flex;
+            justify-content: center; /* Horizontally center the child */
+            height: 10vh; /* Set the container's height to the viewport height */
+        }
+
+        /* Style for the centered div */
+        .centered-div {
+        background-color: #f0f0f0; /* Background color for centered div */
+        padding: 20px; /* Add padding for spacing */
+        }
     </style>
 </head>
 
 <body>
     <div id="app">
         <div v-if="ready == false">
-            Something went wrong, please reload this page with Gamehook's mapper loaded. 
+            Something went wrong, please reload this page with Gamehook's mapper loaded. You may need to whitelist your adblocker for this page (there are no ads, I promise! But ublock origin does prevent gamehook from connecting.)
         </div>
         <div v-else>
             Gamehook is connected.</div>
             <br><br><br>
-            &emsp;&emsp;&emsp;This script records splits.
+            <div class="middlecontainer"><div class="centered-div"><h1>&emsp;&emsp;&emsp;Autosplitter and viewer</h1>
+            </div></div>
             <br>
-            &emsp;&emsp;&emsp;To view splits, input the 
-            <div class="input-container">
-                <label for="autoSplitterPokemonName">Pokemon name:</label>
-                <input type="text" id="autoSplitterPokemonName" v-model="autoSplitterPokemonName">
-                <button @click="setPokemonName">Submit</button>
-            </div>
-
-            <div>
-                <label for="selectSplit">Choose a split:</label>
-                <select id="selectSplit" v-model="selectedSplit">
-                  <option v-for="(split, index) in splitsData" :value="index + 1">{{ index + 1 }}</option>
-                </select>
-                
-                <!-- Display the selected split -->
-                <div v-if="selectedSplit !== null">
-                  Selected Split: {{ selectedSplit }}
+            <div class="container">
+            <div class="left-div">
+                &emsp;&emsp;&emsp;To view splits, input the 
+                <div class="input-container">
+                    <label for="autoSplitterPokemonName">Pokemon name:</label>
+                    <input type="text" id="autoSplitterPokemonName" v-model="autoSplitterPokemonName">
+                    <!-- <button @click="setPokemonName">Submit</button> -->
                 </div>
-              </div>
-            Splits <br>
-            <div v-text="formattedString" style="white-space: pre;"></div>
+
+                <div>
+                    <label for="selectSplit">Choose a split:</label>
+                    <select id="selectSplit" v-model="selectedSplit">
+                    <option v-for="(split, index) in filteredData" :value="index + 1">{{ index + 1 }}</option>
+                    </select>
+                    
+                    <!-- Display the selected split -->
+                    <div v-if="selectedSplit !== null">
+                    Selected Split: {{ selectedSplit }}
+                    </div>
+                </div>
+                Splits <br>
+                <div v-text="formattedString"></div>
+            </div>
+            <div class="right-div">
+                &emsp;&emsp;&emsp;To view splits, input the 
+                <div class="input-container">
+                    <label for="autoSplitterPokemonName2">Pokemon name:</label>
+                    <input type="text" id="autoSplitterPokemonName2" v-model="autoSplitterPokemonName2">
+                    <!-- <button @click="setPokemonName2">Submit</button> -->
+                </div>
+
+                <div>
+                    <label for="selectSplit2">Choose a split:</label>
+                    <select id="selectSplit2" v-model="selectedSplit2">
+                    <option v-for="(split, index) in filteredData2" :value="index + 1">{{ index + 1 }}</option>
+                    </select>
+                    
+                    <!-- Display the selected split -->
+                    <div v-if="selectedSplit2 !== null">
+                    Selected Split: {{ selectedSplit2 }}
+                    </div>
+                </div>
+                Splits <br>
+                <div v-text="formattedString2"></div>
+            </div>
+        </div>
 
     </div>
     <script src="https://unpkg.com/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
@@ -80,11 +135,10 @@
                     ready: false,
                     mapper: null,
                     autoSplitterPokemonName: '', 
-                    rivalName: '', 
-                    pokemonName: '',
-                    splitsData: '',
+                    autoSplitterPokemonName2: '', 
+                    splitsData: [],
                     selectedSplit: null,
-
+                    selectedSplit2: null,
                 }
             },
             methods: {
@@ -112,6 +166,7 @@
 
                 loadData() {
                     this.loadFromLocalStorage('autoSplitterPokemonName');
+                    this.loadFromLocalStorage('autoSplitterPokemonName2');
                     this.loadFromLocalStorage('splitsData');
                 },
                 appendNewObjectToLocalStorage(key, newData) {
@@ -153,6 +208,7 @@
 
                 trackSplits()
                 {
+                    console.log("pokemon name: " + this.pokemonName);
                     const splitTrainers = ["BROCK", "MISTY", "LT.SURGE","ERIKA", "KOGA", "SABRINA", "BLAINE", "GIOVANNI", "LORELEI","BRUNO","AGATHA","LANCE","RIVAL1","RIVAL2","RIVAL3"];
                     const header = "Trainer\tGameTime\tLevel\tPokemon\t\tMove1\t\tMove2\t\tMove3\t\tMove4";
                     // var message = header;
@@ -203,10 +259,24 @@
             },
             computed: {
                 formattedString() {
-                    if(!this.splitsData) { return;}
+                    if(!this.filteredData) { return;}
                     // Replace \n and \t with HTML entities
-                    return this.splitsData[this.selectedSplit-1];
+                    return this.filteredData[this.selectedSplit-1];
+                    // return this.strings.filter((string) => string.includes(this.filterPhrase));
                     // return this.splitsData[this.splitsData.length - 1].replace(/\n/g, '<br>').replace(/\t/g, '&emsp;%emsp;');
+                },
+                formattedString2() {
+                    if(!this.filteredData2) { return;}
+                    // Replace \n and \t with HTML entities
+                    return this.filteredData2[this.selectedSplit2-1];
+                    // return this.strings.filter((string) => string.includes(this.filterPhrase));
+                    // return this.splitsData[this.splitsData.length - 1].replace(/\n/g, '<br>').replace(/\t/g, '&emsp;%emsp;');
+                },
+                filteredData() {
+                    return this.splitsData.filter((string) => string.includes(this.autoSplitterPokemonName));
+                },
+                filteredData2() {
+                    return this.splitsData.filter((string) => string.includes(this.autoSplitterPokemonName2));
                 },
             },
             mounted: async function () {
@@ -229,6 +299,8 @@
             },
             watch: {
                 autoSplitterPokemonName() { this.saveToLocalStorage('autoSplitterPokemonName'); },
+                autoSplitterPokemonName2() { this.saveToLocalStorage('autoSplitterPokemonName2'); },
+
             }
         }).mount('#app')
     </script>
