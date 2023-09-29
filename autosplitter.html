@@ -229,7 +229,6 @@
                         //console.log("changed map to " + this.mapper.properties.battle.textBuffer.value + "- "+this.mapper.properties.overworld.mapGroup +":" + this.mapper.properties.overworld.mapNumber);
                         }, 2); //delay so gamehook can update
                     })
-
                     this.mapper.properties.battle.lowHealthAlarm.change(async (x) => {
                         if(x == "Disabled" && splitTrainers.includes(this.mapper.properties.battle.trainer.class.value)){
                             let message = "";
@@ -245,10 +244,10 @@
                             message = message + "\t" + this.mapper.properties.gameTime.hours.value + ":" + minuteLeadZero + this.mapper.properties.gameTime.minutes.value + ":" + secondLeadZero + this.mapper.properties.gameTime.seconds.value;
                             message = message + "\t" + this.mapper.properties.player.team[0].level.value;
                             message = message + "\t" + this.mapper.properties.player.team[0].species.value;
-                            message = message + "\t\t" + this.mapper.properties.player.team[0].move1.value;
-                            message = message + "\t\t" + this.mapper.properties.player.team[0].move2.value;
-                            message = message + "\t" + this.mapper.properties.player.team[0].move3.value;
-                            message = message + "\t" + this.mapper.properties.player.team[0].move4.value;
+                            if(this.mapper.properties.player.team[0].move1.value!=null) {message = message + "\t\t" + this.mapper.properties.player.team[0].move1.value;}
+                            if(this.mapper.properties.player.team[0].move2.value!=null) {message = message + "\t\t" + this.mapper.properties.player.team[0].move2.value;}
+                            if(this.mapper.properties.player.team[0].move3.value!=null) {message = message + "\t\t" + this.mapper.properties.player.team[0].move3.value;}
+                            if(this.mapper.properties.player.team[0].move4.value!=null) {message = message + "\t\t" + this.mapper.properties.player.team[0].move4.value;}
                             message = message + "\n";
                             console.log("Message:\n"+ message);
                             this.appendToLocalStorage('splitsData',message);
